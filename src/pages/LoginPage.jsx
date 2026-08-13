@@ -1,20 +1,38 @@
 import { useState } from 'react'
 import logo from '../assets/Wika_beton.gif'
 
-function LoginPage({ onLogin, onGoToRegister }) {
+function LoginPage({ onLogin, onGoToRegister, onGoToForgotPassword }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (!email || !password) {
-      setError('Email dan password wajib diisi')
+  const handleSubmit = async (e) => {
+  e.preventDefault()
+  if (!email || !password) {
+    setError('Email dan password wajib diisi')
+    return
+  }
+  setError('')
+
+  try {
+    const res = await fetch('http://172.26.16.1:4000/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    })
+    const data = await res.json()
+
+    if (!res.ok) {
+      setError(data.error || 'Login gagal')
       return
     }
-    setError('')
+
+    localStorage.setItem('authToken', data.token)
     onLogin()
+  } catch (err) {
+    setError('Gagal terhubung ke server')
   }
+}
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
@@ -58,10 +76,15 @@ function LoginPage({ onLogin, onGoToRegister }) {
           </button>
         </form>
 
-        <p className="text-white/60 text-sm text-center mt-6">
+          <p className="text-white/60 text-sm text-center mt-4">
+          <button onClick={onGoToForgotPassword} className="text-blue-300 hover:text-blue-200 font-medium">
+          Lupa Password?
+          </button>
+          </p>
+          <p className="text-white/60 text-sm text-center mt-2">
           Belum punya akun?{' '}
           <button onClick={onGoToRegister} className="text-blue-300 hover:text-blue-200 font-medium">
-            Daftar sekarang
+          Daftar sekarang
           </button>
         </p>
       </div>

@@ -10,14 +10,27 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@aws-sdk/client-cognito-identity": "^3.1104.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.1104.0",
+    "@aws-sdk/client-timestream-query": "^3.1104.0",
+    "@aws-sdk/credential-providers": "^3.1104.0",
     "@tailwindcss/vite": "^4.3.2",
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
     "framer-motion": "^12.42.2",
+    "jsonwebtoken": "^9.0.3",
     "liquid-glass-react": "^1.1.1",
     "lucide-react": "^1.24.0",
+    "nodemailer": "^9.0.5",
+    "pg": "^8.23.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "recharts": "^3.9.2",
-    "tailwindcss": "^4.3.2"
+    "tailwindcss": "^4.3.2",
+    "uuid": "^14.0.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

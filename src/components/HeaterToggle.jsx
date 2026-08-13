@@ -1,36 +1,8 @@
-function playClickSound(isOn) {
-  const ctx = new (window.AudioContext || window.webkitAudioContext)()
-  const oscillator = ctx.createOscillator()
-  const gainNode = ctx.createGain()
-
-  oscillator.connect(gainNode)
-  gainNode.connect(ctx.destination)
-
-  oscillator.type = 'sine'
-  oscillator.frequency.setValueAtTime(isOn ? 600 : 300, ctx.currentTime)
-  oscillator.frequency.exponentialRampToValueAtTime(
-    isOn ? 900 : 150,
-    ctx.currentTime + 0.08
-  )
-
-  gainNode.gain.setValueAtTime(0.15, ctx.currentTime)
-  gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1)
-
-  oscillator.start(ctx.currentTime)
-  oscillator.stop(ctx.currentTime + 0.1)
-}
-
-function HeaterToggle({ label, isOn, onToggle }) {
-  const handleClick = () => {
-    playClickSound(!isOn)
-    onToggle()
-  }
-
+function HeaterToggle({ label, isOn }) {
   return (
     <div className="flex flex-col items-center gap-3">
-      <button
-        onClick={handleClick}
-        className={`relative w-24 h-13 rounded-full transition-colors duration-300 ${
+      <div
+        className={`relative w-24 h-13 rounded-full ${
           isOn ? 'bg-green-500' : ''
         }`}
         style={
@@ -50,7 +22,7 @@ function HeaterToggle({ label, isOn, onToggle }) {
             isOn ? 'translate-x-11' : 'translate-x-0'
           }`}
         />
-      </button>
+      </div>
       <span className="text-sm text-white/90 font-medium">{label}</span>
     </div>
   )

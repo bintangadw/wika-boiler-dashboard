@@ -10,8 +10,6 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 
-const waterLevelMap = { Critical: 0, Low: 1, Medium: 2, Max: 3 }
-const waterLevelStates = ['Max', 'Medium', 'Low', 'Critical']
 const waterLevelLabels = ['Critical', 'Low', 'Medium', 'Max']
 
 const TIME_RANGES = [
@@ -26,55 +24,38 @@ const TIME_RANGES = [
   { label: 'Maks', value: 'max' },
 ]
 
-const RANGE_CONFIG = {
-  '15m': { points: 15, stepMs: 60 * 1000 },
-  '1h': { points: 12, stepMs: 5 * 60 * 1000 },
-  '6h': { points: 12, stepMs: 30 * 60 * 1000 },
-  '1d': { points: 24, stepMs: 60 * 60 * 1000 },
-  '1mo': { points: 30, stepMs: 24 * 60 * 60 * 1000 },
-  '6mo': { points: 26, stepMs: 7 * 24 * 60 * 60 * 1000 },
-  '1y': { points: 12, stepMs: 30 * 24 * 60 * 60 * 1000 },
-  '5y': { points: 20, stepMs: 91 * 24 * 60 * 60 * 1000 },
-  max: { points: 15, stepMs: 365 * 24 * 60 * 60 * 1000 },
-}
+function formatTimeLabel(dateStr, rangeValue) {
+  const date = new Date(dateStr)
+  const pad = (n) => String(n).padStart(2, '0')
 
-function formatTimeLabel(date, rangeValue) {
   if (['15m', '1h', '6h', '1d'].includes(rangeValue)) {
-    return date.toLocaleTimeString('id-ID', {
-      timeZone: 'Asia/Jakarta',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    })
+    return `${pad(date.getHours())}:${pad(date.getMinutes())}`
   }
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
   if (['1mo', '6mo'].includes(rangeValue)) {
-    return date.toLocaleDateString('id-ID', {
-      timeZone: 'Asia/Jakarta',
-      day: '2-digit',
-      month: 'short',
-    })
+    return `${pad(date.getDate())} ${months[date.getMonth()]}`
   }
-  return date.toLocaleDateString('id-ID', {
-    timeZone: 'Asia/Jakarta',
-    month: 'short',
-    year: '2-digit',
-  })
+  return `${months[date.getMonth()]} '${String(date.getFullYear()).slice(2)}`
 }
 
-function generateMockSeries(rangeValue) {
-  const { points, stepMs } = RANGE_CONFIG[rangeValue]
-  const now = Date.now()
-  return Array.from({ length: points }, (_, i) => {
-    const date = new Date(now - (points - 1 - i) * stepMs)
-    const waterState = waterLevelStates[Math.floor(Math.random() * waterLevelStates.length)]
-    return {
-      time: formatTimeLabel(date, rangeValue),
-      temperature: +(75 + Math.random() * 10).toFixed(1),
-      pressure: +(3.5 + Math.random() * 2).toFixed(1),
-      kwh: +(140 + Math.random() * 30).toFixed(1),
-      waterLevel: waterLevelMap[waterState],
-    }
-  })
+function mapWaterLevelNumeric(ta, tb) {
+  if (ta === 1 && tb === 0) return 3 // Max
+  if (ta === 0 && tb === 1) return 1 // Low
+  if (ta === 0 && tb === 0) return 0 // Critical
+  return 2 // fallback
+}
+
+async function fetchHistory(range) {
+  const res = await fetch(`http://172.26.16.1:4000/api/history?range=${range}`)
+  const rows = await res.json()
+
+  return rows.map((row) => ({
+    time: formatTimeLabel(row.bucket_time, range),
+    temperature: +(row.suhu / 10).toFixed(1),
+    pressure: +(((row.tekanan - 400) / 1600) * 10).toFixed(2),
+    kwh: +(row.kwh_meter * (1 / 400)).toFixed(1),
+    waterLevel: mapWaterLevelNumeric(row.water_level_ta, row.water_level_tb),
+  }))
 }
 
 function RangeSelector({ value, onChange, className = '' }) {
@@ -95,7 +76,11 @@ function RangeSelector({ value, onChange, className = '' }) {
 
 function StatsView() {
   const [globalRange, setGlobalRange] = useState('1h')
-  const overviewData = useMemo(() => generateMockSeries(globalRange), [globalRange])
+  const [overviewData, setOverviewData] = useState([])
+
+  useEffect(() => {
+    fetchHistory(globalRange).then(setOverviewData)
+  }, [globalRange])
 
   return (
     <div className="p-8 flex flex-col gap-8">
@@ -119,9 +104,9 @@ function StatsView() {
               labelStyle={{ color: '#e2e8f0' }}
             />
             <Legend />
-            <Line type="monotone" dataKey="temperature" stroke="#fb923c" strokeWidth={2} dot={false} name="Temp (°C)" />
-            <Line type="monotone" dataKey="pressure" stroke="#60a5fa" strokeWidth={2} dot={false} name="Pressure (bar)" />
-            <Line type="monotone" dataKey="kwh" stroke="#facc15" strokeWidth={2} dot={false} name="Power (kWh)" />
+            <Line isAnimationActive={false} type="monotone" dataKey="temperature" stroke="#fb923c" strokeWidth={2} dot={false} name="Temp (°C)" />
+            <Line isAnimationActive={false} type="monotone" dataKey="pressure" stroke="#60a5fa" strokeWidth={2} dot={false} name="Pressure (bar)" />
+            <Line isAnimationActive={false} type="monotone" dataKey="kwh" stroke="#facc15" strokeWidth={2} dot={false} name="Power (kWh)" />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -138,12 +123,15 @@ function StatsView() {
 
 function ChartCard({ title, dataKey, color, globalRange }) {
   const [range, setRange] = useState(globalRange)
+  const [data, setData] = useState([])
 
   useEffect(() => {
     setRange(globalRange)
   }, [globalRange])
 
-  const data = useMemo(() => generateMockSeries(range), [range])
+  useEffect(() => {
+    fetchHistory(range).then(setData)
+  }, [range])
 
   return (
     <div className="glass-panel rounded-3xl p-6">
@@ -160,7 +148,7 @@ function ChartCard({ title, dataKey, color, globalRange }) {
             contentStyle={{ backgroundColor: 'rgba(15,23,42,0.9)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8 }}
             labelStyle={{ color: '#e2e8f0' }}
           />
-          <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} dot={false} />
+          <Line isAnimationActive={false} type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>
@@ -169,12 +157,15 @@ function ChartCard({ title, dataKey, color, globalRange }) {
 
 function WaterLevelChartCard({ globalRange }) {
   const [range, setRange] = useState(globalRange)
+  const [data, setData] = useState([])
 
   useEffect(() => {
     setRange(globalRange)
   }, [globalRange])
 
-  const data = useMemo(() => generateMockSeries(range), [range])
+  useEffect(() => {
+    fetchHistory(range).then(setData)
+  }, [range])
 
   return (
     <div className="glass-panel rounded-3xl p-6">
@@ -191,14 +182,14 @@ function WaterLevelChartCard({ globalRange }) {
             fontSize={10}
             domain={[0, 3]}
             ticks={[0, 1, 2, 3]}
-            tickFormatter={(val) => waterLevelLabels[3 - val] ?? ''}
+            tickFormatter={(val) => waterLevelLabels[val] ?? ''}
           />
           <Tooltip
             contentStyle={{ backgroundColor: 'rgba(15,23,42,0.9)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8 }}
             labelStyle={{ color: '#e2e8f0' }}
-            formatter={(val) => [waterLevelLabels[3 - val], 'Status']}
+            formatter={(val) => [waterLevelLabels[val], 'Status']}
           />
-          <Line type="stepAfter" dataKey="waterLevel" stroke="#22d3ee" strokeWidth={2} dot={false} />
+          <Line isAnimationActive={false} type="stepAfter" dataKey="waterLevel" stroke="#22d3ee" strokeWidth={2} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>

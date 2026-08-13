@@ -7,19 +7,36 @@ function RegisterPage({ onRegisterSuccess, onGoToLogin }) {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (!email || !password || !confirmPassword) {
-      setError('Semua field wajib diisi')
-      return
-    }
-    if (password !== confirmPassword) {
-      setError('Password tidak cocok')
-      return
-    }
-    setError('')
-    onRegisterSuccess()
+  const handleSubmit = async (e) => {
+  e.preventDefault()
+  if (!email || !password || !confirmPassword) {
+    setError('Semua field wajib diisi')
+    return
   }
+  if (password !== confirmPassword) {
+    setError('Password tidak cocok')
+    return
+  }
+  setError('')
+
+  try {
+    const res = await fetch('http://172.26.16.1:4000/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    })
+    const data = await res.json()
+
+    if (!res.ok) {
+      setError(data.error || 'Registrasi gagal')
+      return
+    }
+
+    onRegisterSuccess()
+  } catch (err) {
+    setError('Gagal terhubung ke server')
+  }
+}
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">

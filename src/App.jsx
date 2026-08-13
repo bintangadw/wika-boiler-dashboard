@@ -7,9 +7,15 @@ import StatsView from './pages/StatsView'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import { LogOut } from 'lucide-react'
+import ForgotPasswordPage from './pages/ForgotPasswordPage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 
 function App() {
-  const [authScreen, setAuthScreen] = useState('login') // 'login' | 'register'
+  const [authScreen, setAuthScreen] = useState(() => {
+  const params = new URLSearchParams(window.location.search)
+  return params.get('token') ? 'reset-password' : 'login'
+})
+const resetToken = new URLSearchParams(window.location.search).get('token')
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
   return localStorage.getItem('isLoggedIn') === 'true'
   })
@@ -34,17 +40,31 @@ function App() {
           background: 'linear-gradient(135deg, #0a1128 0%, #1e3a8a 25%, #1e40af 45%, #0c2461 65%, #030712 100%)',
         }}
       >
-        {authScreen === 'login' ? (
-          <LoginPage
-            onLogin={() => setIsLoggedIn(true)}
-            onGoToRegister={() => setAuthScreen('register')}
-          />
-        ) : (
-          <RegisterPage
-            onRegisterSuccess={() => setAuthScreen('login')}
-            onGoToLogin={() => setAuthScreen('login')}
-          />
+        {authScreen === 'login' && (
+        <LoginPage
+          onLogin={() => setIsLoggedIn(true)}
+          onGoToRegister={() => setAuthScreen('register')}
+          onGoToForgotPassword={() => setAuthScreen('forgot-password')}
+        />
         )}
+        {authScreen === 'register' && (
+        <RegisterPage
+        onRegisterSuccess={() => setAuthScreen('login')}
+        onGoToLogin={() => setAuthScreen('login')}
+      />
+        )}
+        {authScreen === 'forgot-password' && (
+        <ForgotPasswordPage onGoToLogin={() => setAuthScreen('login')} />
+        )}
+        {authScreen === 'reset-password' && (
+        <ResetPasswordPage
+        token={resetToken}
+        onResetSuccess={() => {
+        window.history.replaceState({}, '', '/')
+        setAuthScreen('login')
+      }}
+    />
+)}
       </div>
     )
   }
