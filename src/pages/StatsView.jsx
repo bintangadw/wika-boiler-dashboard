@@ -9,6 +9,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts'
+import LogDownload from '../components/LogDownload'
 
 const waterLevelLabels = ['Critical', 'Low', 'Medium', 'Max']
 
@@ -24,25 +25,27 @@ const TIME_RANGES = [
   { label: 'Maks', value: 'max' },
 ]
 
-function formatTimeLabel(dateStr, rangeValue) {
-  const date = new Date(dateStr)
-  const pad = (n) => String(n).padStart(2, '0')
-
+function formatTimeLabel(date, rangeValue) {
   if (['15m', '1h', '6h', '1d'].includes(rangeValue)) {
-    return `${pad(date.getHours())}:${pad(date.getMinutes())}`
+    return date.toLocaleTimeString('id-ID', {
+      timeZone: 'Asia/Jakarta',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    })
   }
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
   if (['1mo', '6mo'].includes(rangeValue)) {
-    return `${pad(date.getDate())} ${months[date.getMonth()]}`
+    return date.toLocaleDateString('id-ID', {
+      timeZone: 'Asia/Jakarta',
+      day: '2-digit',
+      month: 'short',
+    })
   }
-  return `${months[date.getMonth()]} '${String(date.getFullYear()).slice(2)}`
-}
-
-function mapWaterLevelNumeric(ta, tb) {
-  if (ta === 1 && tb === 0) return 3 // Max
-  if (ta === 0 && tb === 1) return 1 // Low
-  if (ta === 0 && tb === 0) return 0 // Critical
-  return 2 // fallback
+  return date.toLocaleDateString('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    month: 'short',
+    year: '2-digit',
+  })
 }
 
 async function fetchHistory(range) {
@@ -50,12 +53,19 @@ async function fetchHistory(range) {
   const rows = await res.json()
 
   return rows.map((row) => ({
-    time: formatTimeLabel(row.bucket_time, range),
+    time: formatTimeLabel(new Date(row.bucket_time), range),
     temperature: +(row.suhu / 10).toFixed(1),
     pressure: +(((row.tekanan - 400) / 1600) * 10).toFixed(2),
     kwh: +(row.kwh_meter * (1 / 400)).toFixed(1),
     waterLevel: mapWaterLevelNumeric(row.water_level_ta, row.water_level_tb),
   }))
+}
+
+function mapWaterLevelNumeric(ta, tb) {
+  if (ta === 1 && tb === 0) return 3
+  if (ta === 0 && tb === 1) return 1
+  if (ta === 0 && tb === 0) return 0
+  return 2
 }
 
 function RangeSelector({ value, onChange, className = '' }) {
@@ -91,6 +101,8 @@ function StatsView() {
           <RangeSelector value={globalRange} onChange={setGlobalRange} />
         </div>
       </div>
+
+      <LogDownload />
 
       <div className="glass-panel rounded-3xl p-6">
         <h3 className="text-white font-semibold mb-4">Overview</h3>

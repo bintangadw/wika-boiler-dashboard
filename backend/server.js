@@ -233,6 +233,32 @@ app.get('/api/history', async (req, res) => {
   }
 })
 
+app.get('/api/log', async (req, res) => {
+  const { start, end } = req.query
+  if (!start || !end) {
+    return res.status(400).json({ error: 'Parameter start dan end wajib diisi' })
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT DISTINCT ON (date_trunc('hour', created_at AT TIME ZONE 'Asia/Jakarta'))
+        date_trunc('hour', created_at AT TIME ZONE 'Asia/Jakarta') AS hour_bucket,
+        suhu, tekanan, kwh_meter, water_level_ta, water_level_tb,
+        heater_1, heater_2, heater_3, heater_4, heater_5,
+        heater_6, heater_7, heater_8, heater_9, heater_10,
+        pompa
+      FROM sensor_readings
+      WHERE created_at BETWEEN $1 AND $2
+      ORDER BY date_trunc('hour', created_at AT TIME ZONE 'Asia/Jakarta'), created_at DESC`,
+      [start, end]
+    )
+    res.json(result.rows)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Gagal ambil data log' })
+  }
+})
+
 app.listen(4000, '0.0.0.0', () => {
   console.log('Backend API jalan di port 4000')
 })
