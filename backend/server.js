@@ -27,13 +27,13 @@ import { v4 as uuidv4 } from 'uuid'
 
 app.use(express.json())
 
-const JWT_SECRET = 'ganti_dengan_string_acak_yang_panjang_dan_rahasia'
+const JWT_SECRET = process.env.JWT_SECRET
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.DB_USER,
-    pass: process.env.DB_PASSWORD,
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_APP_PASSWORD,
   },
 })
 
@@ -55,7 +55,7 @@ app.post('/api/register', async (req, res) => {
     const verifyUrl = `http://172.26.16.1:4000/api/verify?token=${verificationToken}`
 
     await transporter.sendMail({
-      from: '"Boiler Dashboard" <${process.env.DB_GMAIL}>',
+      from: `"Boiler Dashboard" <${process.env.GMAIL_USER}>`,
       to: email,
       subject: 'Verifikasi Akun Boiler Dashboard',
       html: `<p>Klik link berikut buat verifikasi akun kamu:</p><a href="${verifyUrl}">${verifyUrl}</a>`,
@@ -139,7 +139,7 @@ app.post('/api/forgot-password', async (req, res) => {
     const resetUrl = `http://172.26.16.1:3000/reset-password?token=${resetToken}`
 
     await transporter.sendMail({
-      from: '"Boiler Dashboard" <${process.env.DB_GMAIL}>',
+      from: `"Boiler Dashboard" <${process.env.GMAIL_USER}>`,
       to: email,
       subject: 'Reset Password Boiler Dashboard',
       html: `<p>Klik link berikut untuk membuat password baru (berlaku 1 jam):</p><a href="${resetUrl}">${resetUrl}</a>`,
