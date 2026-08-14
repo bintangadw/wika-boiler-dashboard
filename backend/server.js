@@ -32,8 +32,8 @@ const JWT_SECRET = 'ganti_dengan_string_acak_yang_panjang_dan_rahasia'
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: 'bintang.aw206@gmail.com',
-    pass: 'npfr eops zisf iwmp',
+    user: process.env.DB_USER,
+    pass: process.env.DB_PASSWORD,
   },
 })
 
@@ -55,7 +55,7 @@ app.post('/api/register', async (req, res) => {
     const verifyUrl = `http://172.26.16.1:4000/api/verify?token=${verificationToken}`
 
     await transporter.sendMail({
-      from: '"Boiler Dashboard" <emailgmailkamu@gmail.com>',
+      from: '"Boiler Dashboard" <${process.env.DB_GMAIL}>',
       to: email,
       subject: 'Verifikasi Akun Boiler Dashboard',
       html: `<p>Klik link berikut buat verifikasi akun kamu:</p><a href="${verifyUrl}">${verifyUrl}</a>`,
@@ -139,7 +139,7 @@ app.post('/api/forgot-password', async (req, res) => {
     const resetUrl = `http://172.26.16.1:3000/reset-password?token=${resetToken}`
 
     await transporter.sendMail({
-      from: '"Boiler Dashboard" <emailgmailkamu@gmail.com>',
+      from: '"Boiler Dashboard" <${process.env.DB_GMAIL}>',
       to: email,
       subject: 'Reset Password Boiler Dashboard',
       html: `<p>Klik link berikut untuk membuat password baru (berlaku 1 jam):</p><a href="${resetUrl}">${resetUrl}</a>`,
@@ -185,10 +185,15 @@ app.post('/api/reset-password', async (req, res) => {
 
 app.get('/api/live', async (req, res) => {
   try {
-    const result = await pool.query(
+    const sensorResult = await pool.query(
       'SELECT * FROM sensor_readings ORDER BY created_at DESC LIMIT 1'
     )
-    res.json(result.rows[0] || {})
+    const kwhResult = await pool.query('SELECT cumulative_kwh FROM kwh_state WHERE id = 1')
+
+    const row = sensorResult.rows[0] || {}
+    row.cumulative_kwh = kwhResult.rows[0]?.cumulative_kwh || 0
+
+    res.json(row)
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Gagal ambil data' })
@@ -214,7 +219,7 @@ app.get('/api/history', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT
-        to_timestamp(floor(extract(epoch from created_at) / $1) * $1) AS bucket_time,
+        to_timestamp(floor(extract(epoch from (created_at AT TIME ZONE 'Asia/Jakarta')) / $1) * $1) AS bucket_time,
         AVG(suhu) AS suhu,
         AVG(tekanan) AS tekanan,
         AVG(kwh_meter) AS kwh_meter,
@@ -232,6 +237,33 @@ app.get('/api/history', async (req, res) => {
     res.status(500).json({ error: 'Gagal ambil data histori' })
   }
 })
+
+app.get('/api/log', async (req, res) => {
+  const { start, end } = req.query
+  if (!start || !end) {
+    return res.status(400).json({ error: 'Parameter start dan end wajib diisi' })
+  }
+
+  try {
+   const result = await pool.query(
+      `SELECT DISTINCT ON (date_trunc('hour', created_at AT TIME ZONE 'Asia/Jakarta'))
+      date_trunc('hour', created_at AT TIME ZONE 'Asia/Jakarta') AS hour_bucket,
+      suhu, tekanan, cumulative_kwh, water_level_ta, water_level_tb,
+      heater_1, heater_2, heater_3, heater_4, heater_5,
+      heater_6, heater_7, heater_8, heater_9, heater_10,
+      pompa
+      FROM sensor_readings
+      WHERE created_at BETWEEN $1 AND $2
+      ORDER BY date_trunc('hour', created_at AT TIME ZONE 'Asia/Jakarta'), created_at DESC`,
+      [start, end]
+      )
+    res.json(result.rows)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Gagal ambil data log' })
+  }
+})
+
 
 app.listen(4000, '0.0.0.0', () => {
   console.log('Backend API jalan di port 4000')

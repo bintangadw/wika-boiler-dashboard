@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import LogDownload from '../components/LogDownload'
 import {
   LineChart,
   Line,
@@ -91,6 +92,8 @@ function StatsView() {
           <RangeSelector value={globalRange} onChange={setGlobalRange} />
         </div>
       </div>
+
+      <LogDownload />
 
       <div className="glass-panel rounded-3xl p-6">
         <h3 className="text-white font-semibold mb-4">Overview</h3>

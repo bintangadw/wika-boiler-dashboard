@@ -11,7 +11,7 @@ function SensorCard({ icon: Icon, label, value, unit, color, isStatus, statusCol
       }}
     >
       <div className="flex items-center justify-between">
-        <span className="text-slate-100/80 text-sm font-medium">{label}</span>
+        <span className="text-slate-100/80 text-2xl font-medium">{label}</span>
         <div
           className="w-11 h-11 rounded-2xl flex items-center justify-center"
           style={{
@@ -28,7 +28,7 @@ function SensorCard({ icon: Icon, label, value, unit, color, isStatus, statusCol
       ) : (
         <div className="flex items-baseline gap-1">
           <span className="text-4xl font-bold text-white">{value}</span>
-          <span className="text-slate-100/70 text-lg">{unit}</span>
+          <span className="text-slate-100/70 text-2xl">{unit}</span>
         </div>
       )}
     </div>

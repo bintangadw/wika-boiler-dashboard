@@ -23,7 +23,7 @@ function HeaterToggle({ label, isOn }) {
           }`}
         />
       </div>
-      <span className="text-sm text-white/90 font-medium">{label}</span>
+      <span className="text-xl text-white/90 font-medium">{label}</span>
     </div>
   )
 }

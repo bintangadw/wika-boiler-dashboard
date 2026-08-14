@@ -36,10 +36,15 @@ function Navbar() {
           }}
         >
           <div className="flex items-center gap-3">
-            <img src={logo} alt="Wika Beton" className="h-8 w-auto" />
-            <span className="text-white font-bold text-lg tracking-wide">
-              Boiler Dashboard
-            </span>
+            <img src={logo} alt="Wika Beton" className="h-12 w-auto" />
+            <div className="flex flex-col items-center leading-tight">
+              <span className="text-white font-bold text-lg tracking-wide">
+                Dashboard Boiler
+              </span>
+              <span className="text-white font-bold text-lg tracking-wide">
+                Jalur 2
+              </span>
+            </div>
           </div>
         </nav>
       </div>

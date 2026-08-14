@@ -42,7 +42,7 @@ function LiveView() {
           setData({
             temperature: +(row.suhu / 10).toFixed(1),
             pressure: +(((row.tekanan - 400) / 1600) * 10).toFixed(2),
-            kwh: +(row.kwh_meter * (1 / 400)).toFixed(1),
+            kwh: +(row.cumulative_kwh * (1 / 400)).toFixed(1),
             waterLevel: mapWaterLevel(row.water_level_ta, row.water_level_tb),
           })
 
@@ -65,7 +65,7 @@ function LiveView() {
 
   return (
     <div className="p-8">
-      <h2 className="text-2xl font-bold text-white mb-6">Live Sensor Readings</h2>
+      <h2 className="text-4xl font-bold text-white mb-6">Live Sensor Readings</h2>
 
       {(() => {
         const warnings = []
@@ -102,14 +102,14 @@ function LiveView() {
         <SensorCard icon={Droplet} label="Water Level" value={data.waterLevel} unit="" color="text-cyan-400" isStatus={true} statusColor={waterLevelColors[data.waterLevel]} />
       </div>
 
-      <h2 className="text-2xl font-bold text-white mb-6 mt-8">Heater Status</h2>
+      <h2 className="text-4xl font-bold text-white mb-6 mt-8">Heater Status</h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-8 justify-items-center">
         {heaters.map((heater) => (
           <HeaterToggle key={heater.id} label={`Heater ${heater.id}`} isOn={heater.isOn} />
         ))}
       </div>
 
-      <h2 className="text-2xl font-bold text-white mb-6 mt-8">Water Pump Status</h2>
+      <h2 className="text-4xl font-bold text-white mb-6 mt-8">Water Pump Status</h2>
       <div className="flex justify-center">
         <HeaterToggle label="Water Pump" isOn={waterPumpOn} />
       </div>
