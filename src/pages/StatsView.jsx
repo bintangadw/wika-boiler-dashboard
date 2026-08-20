@@ -47,7 +47,7 @@ function mapWaterLevelNumeric(ta, tb) {
 }
 
 async function fetchHistory(range) {
-  const res = await fetch(`http://172.26.16.1:4000/api/history?range=${range}`)
+  const res = await fetch(`http://192.168.2.98:4000/api/history?range=${range}`)
   const rows = await res.json()
 
   return rows.map((row) => ({

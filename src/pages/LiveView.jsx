@@ -31,10 +31,11 @@ function LiveView() {
   )
 
   const [waterPumpOn, setWaterPumpOn] = useState(false)
+  const [alarmPompaOn, setAlarmPompaOn] = useState(false)
 
   useEffect(() => {
     const fetchData = () => {
-      fetch('http://172.26.16.1:4000/api/live')
+      fetch('http://192.168.2.98:4000/api/live')
         .then((res) => res.json())
         .then((row) => {
           console.log('DEBUG row.pompa:', row.pompa, typeof row.pompa)
@@ -54,6 +55,7 @@ function LiveView() {
           )
 
           setWaterPumpOn(Number(row.pompa) === 1)
+          setAlarmPompaOn(row.alarm_pompa === 1)
         })
         .catch((err) => console.error('Fetch gagal:', err))
     }
@@ -109,10 +111,17 @@ function LiveView() {
         ))}
       </div>
 
-      <h2 className="text-4xl font-bold text-white mb-6 mt-8">Water Pump Status</h2>
-      <div className="flex justify-center">
-        <HeaterToggle label="Water Pump" isOn={waterPumpOn} />
+      <div className="flex justify-center gap-24 mt-8">
+      <div className="flex flex-col items-center">
+      <h2 className="text-4xl font-bold text-white mb-6">Water Pump Status</h2>
+      <HeaterToggle label="Water Pump" isOn={waterPumpOn} />
       </div>
+      <div className="flex flex-col items-center">
+      <h2 className="text-4xl font-bold text-white mb-6">Pump Alarm Status</h2>
+      <HeaterToggle label="Alarm Pompa" isOn={alarmPompaOn} />
+      </div>
+    </div>
+
     </div>
   )
 }

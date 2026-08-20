@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import logo from '../assets/Wika_beton.gif'
+import logo from '../assets/logo_wika_beton_baru-removebg-preview.png'
 
 function LoginPage({ onLogin, onGoToRegister, onGoToForgotPassword }) {
   const [email, setEmail] = useState('')
@@ -15,7 +15,7 @@ function LoginPage({ onLogin, onGoToRegister, onGoToForgotPassword }) {
   setError('')
 
   try {
-    const res = await fetch('http://172.26.16.1:4000/api/login', {
+    const res = await fetch('http://192.168.2.98:4000/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),

@@ -52,7 +52,8 @@ app.post('/api/register', async (req, res) => {
       [email, passwordHash, verificationToken]
     )
 
-    const verifyUrl = `http://172.26.16.1:4000/api/verify?token=${verificationToken}`
+    const verifyUrl = 'http://192.168.2.98:4000/api/verify?token=${verificationToken}'
+    //http://172.26.16.1:4000/api/verify?token=${verificationToken}`
 
     await transporter.sendMail({
       from: `"Boiler Dashboard" <${process.env.GMAIL_USER}>`,
@@ -136,7 +137,7 @@ app.post('/api/forgot-password', async (req, res) => {
       [resetToken, expires, email]
     )
 
-    const resetUrl = `http://172.26.16.1:3000/reset-password?token=${resetToken}`
+    const resetUrl = `http://192.168.2.98:3000/reset-password?token=${resetToken}`
 
     await transporter.sendMail({
       from: `"Boiler Dashboard" <${process.env.GMAIL_USER}>`,

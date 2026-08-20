@@ -25,7 +25,7 @@ function LogDownload() {
 
     try {
       const res = await fetch(
-        `http://172.26.16.1:4000/api/log?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`
+        `http://192.168.2.98:4000/api/log?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`
       )
       const rows = await res.json()
 

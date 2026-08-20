@@ -1,4 +1,4 @@
-import logo from '../assets/Wika_beton.gif'
+import logo from '../assets/logo_wika_beton_baru-removebg-preview.png'
 
 function Navbar() {
   const isConnected = true
@@ -39,7 +39,7 @@ function Navbar() {
             <img src={logo} alt="Wika Beton" className="h-12 w-auto" />
             <div className="flex flex-col items-center leading-tight">
               <span className="text-white font-bold text-lg tracking-wide">
-                Dashboard Boiler
+                Dashboard Water Heater
               </span>
               <span className="text-white font-bold text-lg tracking-wide">
                 Jalur 2

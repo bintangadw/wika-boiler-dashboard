@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import logo from '../assets/Wika_beton.gif'
+import logo from '../assets/logo_wika_beton_baru-removebg-preview.png'
 
 function ForgotPasswordPage({ onGoToLogin }) {
   const [email, setEmail] = useState('')
@@ -16,7 +16,7 @@ function ForgotPasswordPage({ onGoToLogin }) {
     setMessage('')
 
     try {
-      const res = await fetch('http://172.26.16.1:4000/api/forgot-password', {
+      const res = await fetch('http://192.168.2.98:4000/api/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
