@@ -30,7 +30,9 @@ app.use(express.json())
 const JWT_SECRET = process.env.JWT_SECRET
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false, // TLS, bukan SSL langsung
   auth: {
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_APP_PASSWORD,
@@ -52,7 +54,7 @@ app.post('/api/register', async (req, res) => {
       [email, passwordHash, verificationToken]
     )
 
-    const verifyUrl = 'http://192.168.2.98:4000/api/verify?token=${verificationToken}'
+    const verifyUrl = `http://192.168.2.98:4000/api/verify?token=${verificationToken}`
     //http://172.26.16.1:4000/api/verify?token=${verificationToken}`
 
     await transporter.sendMail({
