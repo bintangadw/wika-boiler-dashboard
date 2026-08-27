@@ -33,36 +33,47 @@ function LiveView() {
   const [waterPumpOn, setWaterPumpOn] = useState(false)
   const [alarmPompaOn, setAlarmPompaOn] = useState(false)
 
-  // State untuk kalkulasi efisiensi biaya
-  const [gasCostRef, setGasCostRef] = useState(() => Number(localStorage.getItem('gasCostRef')) || 0)
-  const [kwhPrice, setKwhPrice] = useState(() => Number(localStorage.getItem('kwhPrice')) || 0)
+  const [gasCostRef, setGasCostRef] = useState(0)
+  const [kwhPrice, setKwhPrice] = useState(0)
   const [showSettings, setShowSettings] = useState(false)
+  const [kwhAtDayStart, setKwhAtDayStart] = useState(0)
 
   useEffect(() => {
-    localStorage.setItem('gasCostRef', gasCostRef)
-  }, [gasCostRef])
+    fetch('http://192.168.2.98:4000/api/settings')
+      .then((res) => res.json())
+      .then((s) => {
+        setKwhPrice(Number(s.kwh_price) || 0)
+        setGasCostRef(Number(s.gas_cost_ref) || 0)
+      })
+  }, [])
 
-  useEffect(() => {
-    localStorage.setItem('kwhPrice', kwhPrice)
-  }, [kwhPrice])
+  const saveSettings = () => {
+    fetch('http://192.168.2.98:4000/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kwhPrice, gasCostRef }),
+    }).then(() => setShowSettings(false))
+  }
 
-  // Kalkulasi biaya
-  const listrikCost = data.kwh * kwhPrice
-  const efficiency = gasCostRef - listrikCost
+  // Kalkulasi biaya HARI INI (reset tiap 00:00 WIB)
+  const kwhToday = Math.max(0, data.kwh - kwhAtDayStart)
+  const listrikCost = kwhToday * kwhPrice
+  const gasCostEquivalent = (gasCostRef / 1000) * kwhToday
+  const efficiency = gasCostEquivalent - listrikCost
 
   useEffect(() => {
     const fetchData = () => {
       fetch('http://192.168.2.98:4000/api/live')
         .then((res) => res.json())
         .then((row) => {
-          console.log('DEBUG row.pompa:', row.pompa, typeof row.pompa)
-
           setData({
             temperature: +(row.suhu / 10).toFixed(1),
             pressure: +(((row.tekanan - 400) / 1600) * 10).toFixed(2),
             kwh: +(row.cumulative_kwh * (1 / 400)).toFixed(1),
             waterLevel: mapWaterLevel(row.water_level_ta, row.water_level_tb),
           })
+
+          setKwhAtDayStart(+(row.kwh_at_day_start * (1 / 400)).toFixed(1))
 
           setHeaters(
             Array.from({ length: 10 }, (_, i) => ({
@@ -94,18 +105,12 @@ function LiveView() {
         if (data.pressure >= 2.3) {
           warnings.push('Pressure Melebihi Batas Aman (≥ 2.3 bar)')
         }
-
         if (warnings.length === 0) return null
-
         const warningText = warnings.map((w) => `⚠️ PERINGATAN: ${w} ⚠️`).join(' \u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0 ')
-
         return (
           <div
             className="animate-fade-in relative overflow-hidden rounded-2xl mb-6 py-3"
-            style={{
-              background: 'rgba(239,68,68,0.2)',
-              border: '1px solid rgba(239,68,68,0.5)',
-            }}
+            style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.5)' }}
           >
             <div className="animate-marquee whitespace-nowrap text-red-300 font-bold text-lg">
               {warningText} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {warningText}
@@ -121,7 +126,6 @@ function LiveView() {
         <SensorCard icon={Droplet} label="Water Level" value={data.waterLevel} unit="" color="text-cyan-400" isStatus={true} statusColor={waterLevelColors[data.waterLevel]} />
       </div>
 
-      {/* Financial Efficiency Section */}
       <div className="flex justify-between items-center mb-4 mt-6">
         <h2 className="text-2xl lg:text-3xl font-bold text-white">Efisiensi Biaya</h2>
         <button
@@ -139,7 +143,7 @@ function LiveView() {
           <div className="w-12 h-12 rounded-full bg-yellow-400/10 flex items-center justify-center mb-3 ring-1 ring-yellow-400/30">
             <Zap className="w-6 h-6 text-yellow-400" />
           </div>
-          <p className="text-white/70 text-xs font-medium mb-1 uppercase tracking-wider">Biaya Listrik Heater</p>
+          <p className="text-white/70 text-xs font-medium mb-1 uppercase tracking-wider">Biaya Listrik Heater (Hari Ini)</p>
           <h3 className="text-2xl font-bold text-white">Rp {listrikCost.toLocaleString('id-ID')}</h3>
         </div>
 
@@ -148,7 +152,7 @@ function LiveView() {
           <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 ring-1 ${efficiency >= 0 ? 'bg-green-400/10 ring-green-400/30' : 'bg-red-400/10 ring-red-400/30'}`}>
             {efficiency >= 0 ? <TrendingUp className="w-6 h-6 text-green-400" /> : <TrendingDown className="w-6 h-6 text-red-400" />}
           </div>
-          <p className="text-white/70 text-xs font-medium mb-1 uppercase tracking-wider">Efisiensi Rupiah</p>
+          <p className="text-white/70 text-xs font-medium mb-1 uppercase tracking-wider">Efisiensi Rupiah (Hari Ini)</p>
           <h3 className={`text-3xl font-bold tracking-tight ${efficiency >= 0 ? 'text-green-400' : 'text-red-400'}`}>
             {efficiency >= 0 ? '+' : '-'}Rp {Math.abs(efficiency).toLocaleString('id-ID')}
           </h3>
@@ -156,8 +160,6 @@ function LiveView() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-
-        {/* Heater Status Card */}
         <div className="glass-panel p-6 rounded-3xl lg:col-span-2 border border-white/10 shadow-xl">
           <h2 className="text-xl font-bold text-white mb-6 uppercase tracking-wider">Heater Status</h2>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-y-8 gap-x-4">
@@ -169,7 +171,6 @@ function LiveView() {
           </div>
         </div>
 
-        {/* Pump Status Card */}
         <div className="glass-panel p-6 rounded-3xl lg:col-span-1 border border-white/10 shadow-xl">
           <h2 className="text-xl font-bold text-white mb-6 uppercase tracking-wider">Pump Status</h2>
           <div className="flex justify-around items-center h-full pb-8">
@@ -181,10 +182,8 @@ function LiveView() {
             </div>
           </div>
         </div>
-
       </div>
 
-      {/* Settings Modal */}
       {showSettings && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="glass-panel p-6 rounded-3xl w-full max-w-md relative border border-white/20 shadow-2xl">
@@ -201,7 +200,7 @@ function LiveView() {
 
             <div className="flex flex-col gap-5">
               <div>
-                <label className="text-white/80 text-sm mb-2 block font-medium">Referensi Biaya Gas Harian</label>
+                <label className="text-white/80 text-sm mb-2 block font-medium">Harga Gas (Rp per 1000 kWh setara)</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 font-medium">Rp</span>
                   <input
@@ -227,7 +226,7 @@ function LiveView() {
                 </div>
               </div>
               <button
-                onClick={() => setShowSettings(false)}
+                onClick={saveSettings}
                 className="w-full mt-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition-colors shadow-lg shadow-blue-500/30"
               >
                 Simpan & Tutup
@@ -236,7 +235,6 @@ function LiveView() {
           </div>
         </div>
       )}
-
     </div>
   )
 }

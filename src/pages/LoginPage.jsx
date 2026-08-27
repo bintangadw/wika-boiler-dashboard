@@ -6,8 +6,11 @@ function LoginPage({ onLogin, onGoToRegister, onGoToForgotPassword }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
   e.preventDefault()
+  onLogin()
+
+  
   if (!email || !password) {
     setError('Email dan password wajib diisi')
     return

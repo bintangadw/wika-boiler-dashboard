@@ -32,7 +32,7 @@ const JWT_SECRET = process.env.JWT_SECRET
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
   port: 587,
-  secure: false, // TLS, bukan SSL langsung
+  secure: false,
   auth: {
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_APP_PASSWORD,
@@ -44,26 +44,20 @@ app.post('/api/register', async (req, res) => {
   if (!email || !password) {
     return res.status(400).json({ error: 'Email dan password wajib diisi' })
   }
-
   try {
     const passwordHash = await bcrypt.hash(password, 10)
     const verificationToken = uuidv4()
-
     await pool.query(
       'INSERT INTO users (email, password_hash, verification_token) VALUES ($1, $2, $3)',
       [email, passwordHash, verificationToken]
     )
-
     const verifyUrl = `http://192.168.2.98:4000/api/verify?token=${verificationToken}`
-    //http://172.26.16.1:4000/api/verify?token=${verificationToken}`
-
     await transporter.sendMail({
       from: `"Boiler Dashboard" <${process.env.GMAIL_USER}>`,
       to: email,
       subject: 'Verifikasi Akun Boiler Dashboard',
       html: `<p>Klik link berikut buat verifikasi akun kamu:</p><a href="${verifyUrl}">${verifyUrl}</a>`,
     })
-
     res.json({ message: 'Registrasi berhasil, cek email untuk verifikasi' })
   } catch (err) {
     console.error(err)
@@ -96,19 +90,10 @@ app.post('/api/login', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM users WHERE email = $1', [email])
     const user = result.rows[0]
-
-    if (!user) {
-      return res.status(400).json({ error: 'Email atau password salah' })
-    }
-    if (!user.is_verified) {
-      return res.status(400).json({ error: 'Email belum diverifikasi, cek inbox kamu' })
-    }
-
+    if (!user) return res.status(400).json({ error: 'Email atau password salah' })
+    if (!user.is_verified) return res.status(400).json({ error: 'Email belum diverifikasi, cek inbox kamu' })
     const match = await bcrypt.compare(password, user.password_hash)
-    if (!match) {
-      return res.status(400).json({ error: 'Email atau password salah' })
-    }
-
+    if (!match) return res.status(400).json({ error: 'Email atau password salah' })
     const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' })
     res.json({ token })
   } catch (err) {
@@ -119,35 +104,24 @@ app.post('/api/login', async (req, res) => {
 
 app.post('/api/forgot-password', async (req, res) => {
   const { email } = req.body
-  if (!email) {
-    return res.status(400).json({ error: 'Email wajib diisi' })
-  }
-
+  if (!email) return res.status(400).json({ error: 'Email wajib diisi' })
   try {
     const result = await pool.query('SELECT * FROM users WHERE email = $1', [email])
     const user = result.rows[0]
-
-    if (!user) {
-      return res.json({ message: 'Kalau email terdaftar, link reset password sudah dikirim' })
-    }
-
+    if (!user) return res.json({ message: 'Kalau email terdaftar, link reset password sudah dikirim' })
     const resetToken = uuidv4()
-    const expires = new Date(Date.now() + 60 * 60 * 1000) // 1 jam dari sekarang
-
+    const expires = new Date(Date.now() + 60 * 60 * 1000)
     await pool.query(
       'UPDATE users SET reset_token = $1, reset_token_expires = $2 WHERE email = $3',
       [resetToken, expires, email]
     )
-
     const resetUrl = `http://192.168.2.98:3000/reset-password?token=${resetToken}`
-
     await transporter.sendMail({
       from: `"Boiler Dashboard" <${process.env.GMAIL_USER}>`,
       to: email,
       subject: 'Reset Password Boiler Dashboard',
       html: `<p>Klik link berikut untuk membuat password baru (berlaku 1 jam):</p><a href="${resetUrl}">${resetUrl}</a>`,
     })
-
     res.json({ message: 'Kalau email terdaftar, link reset password sudah dikirim' })
   } catch (err) {
     console.error(err)
@@ -160,25 +134,18 @@ app.post('/api/reset-password', async (req, res) => {
   if (!token || !newPassword) {
     return res.status(400).json({ error: 'Token dan password baru wajib diisi' })
   }
-
   try {
     const result = await pool.query(
       'SELECT * FROM users WHERE reset_token = $1 AND reset_token_expires > NOW()',
       [token]
     )
     const user = result.rows[0]
-
-    if (!user) {
-      return res.status(400).json({ error: 'Link reset tidak valid atau sudah kedaluwarsa' })
-    }
-
+    if (!user) return res.status(400).json({ error: 'Link reset tidak valid atau sudah kedaluwarsa' })
     const passwordHash = await bcrypt.hash(newPassword, 10)
-
     await pool.query(
       'UPDATE users SET password_hash = $1, reset_token = NULL, reset_token_expires = NULL WHERE id = $2',
       [passwordHash, user.id]
     )
-
     res.json({ message: 'Password berhasil diubah' })
   } catch (err) {
     console.error(err)
@@ -186,15 +153,39 @@ app.post('/api/reset-password', async (req, res) => {
   }
 })
 
+app.get('/api/settings', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT kwh_price, gas_cost_ref FROM app_settings WHERE id = 1')
+    res.json(result.rows[0] || { kwh_price: 0, gas_cost_ref: 0 })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Gagal ambil settings' })
+  }
+})
+
+app.post('/api/settings', async (req, res) => {
+  const { kwhPrice, gasCostRef } = req.body
+  try {
+    await pool.query(
+      'UPDATE app_settings SET kwh_price = $1, gas_cost_ref = $2 WHERE id = 1',
+      [kwhPrice, gasCostRef]
+    )
+    res.json({ message: 'Settings berhasil disimpan' })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Gagal simpan settings' })
+  }
+})
+
 app.get('/api/live', async (req, res) => {
   try {
-    const sensorResult = await pool.query(
-      'SELECT * FROM sensor_readings ORDER BY created_at DESC LIMIT 1'
-    )
+    const sensorResult = await pool.query('SELECT * FROM sensor_readings ORDER BY created_at DESC LIMIT 1')
     const kwhResult = await pool.query('SELECT cumulative_kwh FROM kwh_state WHERE id = 1')
+    const trackerResult = await pool.query('SELECT kwh_at_day_start FROM daily_kwh_tracker WHERE id = 1')
 
     const row = sensorResult.rows[0] || {}
     row.cumulative_kwh = kwhResult.rows[0]?.cumulative_kwh || 0
+    row.kwh_at_day_start = trackerResult.rows[0]?.kwh_at_day_start || 0
 
     res.json(row)
   } catch (err) {
@@ -205,7 +196,6 @@ app.get('/api/live', async (req, res) => {
 
 app.get('/api/history', async (req, res) => {
   const range = req.query.range || '1h'
-
   const rangeConfig = {
     '15m': { intervalSql: '15 minutes', bucketSeconds: 60 },
     '1h': { intervalSql: '1 hour', bucketSeconds: 300 },
@@ -218,7 +208,6 @@ app.get('/api/history', async (req, res) => {
     max: { intervalSql: '3650 days', bucketSeconds: 7884000 },
   }
   const config = rangeConfig[range] || rangeConfig['1h']
-
   try {
     const result = await pool.query(
       `SELECT
@@ -226,6 +215,7 @@ app.get('/api/history', async (req, res) => {
         AVG(suhu) AS suhu,
         AVG(tekanan) AS tekanan,
         AVG(kwh_meter) AS kwh_meter,
+        MAX(cumulative_kwh) AS cumulative_kwh,
         MAX(water_level_ta) AS water_level_ta,
         MAX(water_level_tb) AS water_level_tb
       FROM sensor_readings
@@ -246,9 +236,8 @@ app.get('/api/log', async (req, res) => {
   if (!start || !end) {
     return res.status(400).json({ error: 'Parameter start dan end wajib diisi' })
   }
-
   try {
-   const result = await pool.query(
+    const result = await pool.query(
       `SELECT DISTINCT ON (date_trunc('hour', created_at AT TIME ZONE 'Asia/Jakarta'))
       date_trunc('hour', created_at AT TIME ZONE 'Asia/Jakarta') AS hour_bucket,
       suhu, tekanan, cumulative_kwh, water_level_ta, water_level_tb,
@@ -259,14 +248,13 @@ app.get('/api/log', async (req, res) => {
       WHERE created_at BETWEEN $1 AND $2
       ORDER BY date_trunc('hour', created_at AT TIME ZONE 'Asia/Jakarta'), created_at DESC`,
       [start, end]
-      )
+    )
     res.json(result.rows)
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Gagal ambil data log' })
   }
 })
-
 
 app.listen(4000, '0.0.0.0', () => {
   console.log('Backend API jalan di port 4000')
