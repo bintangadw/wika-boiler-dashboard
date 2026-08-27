@@ -38,7 +38,7 @@ function LoginPage({ onLogin, onGoToRegister, onGoToForgotPassword }) {
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="glass-panel rounded-3xl p-8 w-full max-w-sm">
         <div className="flex justify-center mb-4">
-        <img src={logo} alt="Wika Beton" className="h-14 w-auto" />
+          <img src={logo} alt="Wika Beton" className="h-14 w-auto" />
         </div>
         <h1 className="text-2xl font-bold text-white mb-1 text-center">Boiler Dashboard</h1>
         <p className="text-white/60 text-sm text-center mb-6">Masuk ke akun kamu</p>
@@ -76,15 +76,15 @@ function LoginPage({ onLogin, onGoToRegister, onGoToForgotPassword }) {
           </button>
         </form>
 
-          <p className="text-white/60 text-sm text-center mt-4">
+        <p className="text-white/60 text-sm text-center mt-4">
           <button onClick={onGoToForgotPassword} className="text-blue-300 hover:text-blue-200 font-medium">
-          Lupa Password?
+            Lupa Password?
           </button>
-          </p>
-          <p className="text-white/60 text-sm text-center mt-2">
+        </p>
+        <p className="text-white/60 text-sm text-center mt-2">
           Belum punya akun?{' '}
           <button onClick={onGoToRegister} className="text-blue-300 hover:text-blue-200 font-medium">
-          Daftar sekarang
+            Daftar sekarang
           </button>
         </p>
       </div>

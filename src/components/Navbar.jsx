@@ -24,9 +24,9 @@ function Navbar() {
         </span>
       </div>
 
-      <div className="w-full flex justify-center pt-6 pb-4 px-4">
+      <div className="w-full flex justify-center pt-6 pb-4 px-2 sm:px-4">
         <nav
-          className="rounded-3xl px-10 py-3 flex items-center"
+          className="rounded-3xl px-4 sm:px-6 md:px-10 py-3 flex items-center justify-center w-fit"
           style={{
             background: 'rgba(255,255,255,0.12)',
             backdropFilter: 'blur(20px)',
@@ -35,13 +35,13 @@ function Navbar() {
             boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.3)',
           }}
         >
-          <div className="flex items-center gap-3">
-            <img src={logo} alt="Wika Beton" className="h-12 w-auto" />
-            <div className="flex flex-col items-center leading-tight">
-              <span className="text-white font-bold text-lg tracking-wide">
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 text-center sm:text-left">
+            <img src={logo} alt="Wika Beton" className="h-8 sm:h-10 md:h-12 w-auto" />
+            <div className="flex flex-col items-center sm:items-start leading-tight">
+              <span className="text-white font-bold text-sm sm:text-base md:text-lg tracking-wide">
                 Dashboard Water Heater
               </span>
-              <span className="text-white font-bold text-lg tracking-wide">
+              <span className="text-white font-bold text-sm sm:text-base md:text-lg tracking-wide">
                 Jalur 2
               </span>
             </div>
