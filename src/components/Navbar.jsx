@@ -1,7 +1,23 @@
+import { useState, useEffect } from 'react'
 import logo from '../assets/logo_wika_beton_baru-removebg-preview.png'
 
 function Navbar() {
-  const isConnected = true
+  const [isConnected, setIsConnected] = useState(false)
+
+  useEffect(() => {
+    const checkStatus = () => {
+      fetch('http://192.168.2.98:4000/api/live')
+        .then((res) => res.json())
+        .then((row) => {
+          setIsConnected(Number(row.sistem_run) === 1)
+        })
+        .catch(() => setIsConnected(false))
+    }
+
+    checkStatus()
+    const interval = setInterval(checkStatus, 3000)
+    return () => clearInterval(interval)
+  }, [])
 
   return (
     <>
@@ -15,18 +31,18 @@ function Navbar() {
         }}
       >
         <span
-          className={`w-2.5 h-2.5 rounded-full ${
+          className={`w-4.5 h-4.5 rounded-full ${
             isConnected ? 'bg-green-400' : 'bg-red-400'
           }`}
         />
-        <span className="text-xs text-white/90 hidden sm:inline">
-          {isConnected ? 'Connected' : 'Disconnected'}
+        <span className="text-xl text-white/90 hidden sm:inline">
+          {isConnected ? 'On' : 'Off'}
         </span>
       </div>
 
-      <div className="w-full flex justify-center pt-6 pb-4 px-2 sm:px-4">
+      <div className="w-full flex justify-center pt-6 pb-4 px-4">
         <nav
-          className="rounded-3xl px-4 sm:px-6 md:px-10 py-3 flex items-center justify-center w-fit"
+          className="rounded-3xl px-10 py-3 flex items-center"
           style={{
             background: 'rgba(255,255,255,0.12)',
             backdropFilter: 'blur(20px)',
@@ -35,13 +51,13 @@ function Navbar() {
             boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.3)',
           }}
         >
-          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 text-center sm:text-left">
-            <img src={logo} alt="Wika Beton" className="h-8 sm:h-10 md:h-12 w-auto" />
-            <div className="flex flex-col items-center sm:items-start leading-tight">
-              <span className="text-white font-bold text-sm sm:text-base md:text-lg tracking-wide">
+          <div className="flex items-center gap-3">
+            <img src={logo} alt="Wika Beton" className="h-12 w-auto" />
+            <div className="flex flex-col items-center leading-tight">
+              <span className="text-white font-bold text-lg tracking-wide">
                 Dashboard Water Heater
               </span>
-              <span className="text-white font-bold text-sm sm:text-base md:text-lg tracking-wide">
+              <span className="text-white font-bold text-lg tracking-wide">
                 Jalur 2
               </span>
             </div>

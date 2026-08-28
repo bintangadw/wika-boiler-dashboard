@@ -39,13 +39,25 @@ function LiveView() {
   const [kwhAtDayStart, setKwhAtDayStart] = useState(0)
 
   useEffect(() => {
+  let cancelled = false
+
+  const loadSettings = () => {
     fetch('http://192.168.2.98:4000/api/settings')
       .then((res) => res.json())
       .then((s) => {
+        if (cancelled) return
         setKwhPrice(Number(s.kwh_price) || 0)
         setGasCostRef(Number(s.gas_cost_ref) || 0)
       })
-  }, [])
+      .catch(() => {
+        if (cancelled) return
+        setTimeout(loadSettings, 2000)
+      })
+  }
+
+  loadSettings()
+  return () => { cancelled = true }
+}, [])
 
   const saveSettings = () => {
     fetch('http://192.168.2.98:4000/api/settings', {

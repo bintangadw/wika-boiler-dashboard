@@ -44,7 +44,7 @@ function RegisterPage({ onRegisterSuccess, onGoToLogin }) {
         <div className="flex justify-center mb-4">
         <img src={logo} alt="Wika Beton" className="h-14 w-auto" />
         </div>
-        <h1 className="text-2xl font-bold text-white mb-1 text-center">Boiler Dashboard</h1>
+        <h1 className="text-2xl font-bold text-white mb-1 text-center">Dashboard Water Heater Jalur 2</h1>
         <p className="text-white/60 text-sm text-center mb-6">Buat akun baru</p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">

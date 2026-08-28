@@ -256,6 +256,26 @@ app.get('/api/log', async (req, res) => {
   }
 })
 
+app.get('/api/daily-efficiency-log', async (req, res) => {
+  const { start, end } = req.query
+  if (!start || !end) {
+    return res.status(400).json({ error: 'Parameter start dan end wajib diisi' })
+  }
+  try {
+    const result = await pool.query(
+      `SELECT tanggal, kwh_terpakai, biaya_listrik, referensi_gas, efisiensi
+       FROM daily_efficiency
+       WHERE tanggal BETWEEN $1 AND $2
+       ORDER BY tanggal ASC`,
+      [start, end]
+    )
+    res.json(result.rows)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Gagal ambil data efisiensi harian' })
+  }
+})
+
 app.listen(4000, '0.0.0.0', () => {
   console.log('Backend API jalan di port 4000')
 })

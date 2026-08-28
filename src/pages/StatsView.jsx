@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import LogDownload from '../components/LogDownload'
+import DailyEfficiencyDownload from '../components/DailyEfficiencyDownload'
+
 import {
   LineChart,
   Line,
@@ -46,12 +48,20 @@ function mapWaterLevelNumeric(ta, tb) {
   return 2 // fallback
 }
 
+function formatFullDate(date) {
+  const pad = (n) => String(n).padStart(2, '0')
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+  const wib = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }))
+  return `${pad(wib.getDate())} ${months[wib.getMonth()]} ${wib.getFullYear()}, ${pad(wib.getHours())}:${pad(wib.getMinutes())}`
+}
+
 async function fetchHistory(range) {
   const res = await fetch(`http://192.168.2.98:4000/api/history?range=${range}`)
   const rows = await res.json()
 
   return rows.map((row) => ({
     time: formatTimeLabel(new Date(row.bucket_time), range),
+    fullDate: formatFullDate(new Date(row.bucket_time)),
     temperature: +(row.suhu / 10).toFixed(1),
     pressure: +(((row.tekanan - 400) / 1600) * 10).toFixed(2),
     kwh: +(row.kwh_meter * (1 / 400)).toFixed(1),
@@ -95,6 +105,7 @@ function StatsView() {
       </div>
 
       <LogDownload />
+      <DailyEfficiencyDownload />
 
       <div className="glass-panel rounded-3xl p-6">
         <h3 className="text-white font-semibold mb-4">Overview</h3>
@@ -106,6 +117,7 @@ function StatsView() {
             <Tooltip
               contentStyle={{ backgroundColor: 'rgba(15,23,42,0.9)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8 }}
               labelStyle={{ color: '#e2e8f0' }}
+              labelFormatter={(label, payload) => payload?.[0]?.payload?.fullDate || label}
             />
             <Legend />
             <Line isAnimationActive={false} type="monotone" dataKey="temperature" stroke="#fb923c" strokeWidth={2} dot={false} name="Temp (°C)" />
@@ -152,6 +164,7 @@ function ChartCard({ title, dataKey, color, globalRange }) {
           <Tooltip
             contentStyle={{ backgroundColor: 'rgba(15,23,42,0.9)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8 }}
             labelStyle={{ color: '#e2e8f0' }}
+            labelFormatter={(label, payload) => payload?.[0]?.payload?.fullDate || label}
           />
           <Line isAnimationActive={false} type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} dot={false} />
         </LineChart>
@@ -193,6 +206,7 @@ function WaterLevelChartCard({ globalRange }) {
             contentStyle={{ backgroundColor: 'rgba(15,23,42,0.9)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8 }}
             labelStyle={{ color: '#e2e8f0' }}
             formatter={(val) => [waterLevelLabels[val], 'Status']}
+            labelFormatter={(label, payload) => payload?.[0]?.payload?.fullDate || label}
           />
           <Line isAnimationActive={false} type="stepAfter" dataKey="waterLevel" stroke="#22d3ee" strokeWidth={2} dot={false} />
         </LineChart>
@@ -223,14 +237,13 @@ function CostEfficiencyChartCard({ globalRange }) {
       const gasCostRef = Number(settings.gas_cost_ref) || 0
 
       const processed = rows.map((row, i) => {
-        const prevKwh = i === 0 ? row.cumulativeKwh : rows[i - 1].cumulativeKwh
-        const deltaKwh = Math.max(0, row.cumulativeKwh - prevKwh)
-        const periodCost = +(deltaKwh * kwhPrice).toFixed(0)
-        const periodGasEquivalent = +((gasCostRef / 1000) * deltaKwh).toFixed(0)
-        const periodEfficiency = periodGasEquivalent - periodCost
-        return { time: row.time, periodCost, periodEfficiency }
-      })
-
+      const prevKwh = i === 0 ? row.cumulativeKwh : rows[i - 1].cumulativeKwh
+      const deltaKwh = Math.max(0, row.cumulativeKwh - prevKwh)
+      const periodCost = +(deltaKwh * kwhPrice).toFixed(0)
+      const periodGasEquivalent = +((gasCostRef / 1000) * deltaKwh).toFixed(0)
+      const periodEfficiency = periodGasEquivalent - periodCost
+      return { time: row.time, fullDate: row.fullDate, periodCost, periodEfficiency }
+    })
       setData(processed)
     }
     load()
@@ -251,6 +264,7 @@ function CostEfficiencyChartCard({ globalRange }) {
             contentStyle={{ backgroundColor: 'rgba(15,23,42,0.9)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8 }}
             labelStyle={{ color: '#e2e8f0' }}
             formatter={(val, name) => [`Rp ${val.toLocaleString('id-ID')}`, name === 'periodCost' ? 'Biaya Listrik' : 'Efisiensi']}
+            labelFormatter={(label, payload) => payload?.[0]?.payload?.fullDate || label}
           />
           <Legend />
           <Line isAnimationActive={false} type="monotone" dataKey="periodCost" stroke="#facc15" strokeWidth={2} dot={false} name="Biaya Listrik" />
