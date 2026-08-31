@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+const API_BASE = `http://${window.location.hostname}:4000`
 
 function mapWaterLevelLabel(ta, tb) {
   if (ta === 1 && tb === 0) return 'Max'
@@ -25,7 +26,7 @@ function LogDownload() {
 
     try {
       const res = await fetch(
-        `http://192.168.2.98:4000/api/log?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`
+        `${API_BASE}/api/log?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`
       )
       const rows = await res.json()
 

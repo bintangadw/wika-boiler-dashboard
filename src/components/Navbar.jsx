@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import logo from '../assets/logo_wika_beton_baru-removebg-preview.png'
+const API_BASE = `http://${window.location.hostname}:4000`
 
 function Navbar() {
   const [isConnected, setIsConnected] = useState(false)
 
   useEffect(() => {
     const checkStatus = () => {
-      fetch('http://192.168.2.98:4000/api/live')
+      fetch(`${API_BASE}/api/live`)
         .then((res) => res.json())
         .then((row) => {
           setIsConnected(Number(row.sistem_run) === 1)

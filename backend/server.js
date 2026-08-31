@@ -22,22 +22,13 @@ pool.on('error', (err) => {
 
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
-import nodemailer from 'nodemailer'
+import { resend } from 'resend'
+const resend = new Resend(process.env.RESEND_API_KEY)
 import { v4 as uuidv4 } from 'uuid'
 
 app.use(express.json())
 
 const JWT_SECRET = process.env.JWT_SECRET
-
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD,
-  },
-})
 
 app.post('/api/register', async (req, res) => {
   const { email, password } = req.body
@@ -51,12 +42,14 @@ app.post('/api/register', async (req, res) => {
       'INSERT INTO users (email, password_hash, verification_token) VALUES ($1, $2, $3)',
       [email, passwordHash, verificationToken]
     )
-    const verifyUrl = `http://192.168.2.98:4000/api/verify?token=${verificationToken}`
-    await transporter.sendMail({
-      from: `"Boiler Dashboard" <${process.env.GMAIL_USER}>`,
-      to: email,
-      subject: 'Verifikasi Akun Boiler Dashboard',
-      html: `<p>Klik link berikut buat verifikasi akun kamu:</p><a href="${verifyUrl}">${verifyUrl}</a>`,
+    const hostname = req.get('host').split(':')[0]
+    const verifyUrl = `http://${hostname}:4000/api/verify?token=${verificationToken}`
+  
+    await resend.emails.send({
+    from: 'Boiler Dashboard <onboarding@resend.dev>',
+    to: email,
+    subject: 'Verifikasi Akun Boiler Dashboard',
+    html: `<p>Klik link berikut buat verifikasi akun kamu:</p><a href="${verifyUrl}">${verifyUrl}</a>`,
     })
     res.json({ message: 'Registrasi berhasil, cek email untuk verifikasi' })
   } catch (err) {
@@ -115,12 +108,13 @@ app.post('/api/forgot-password', async (req, res) => {
       'UPDATE users SET reset_token = $1, reset_token_expires = $2 WHERE email = $3',
       [resetToken, expires, email]
     )
-    const resetUrl = `http://192.168.2.98:3000/reset-password?token=${resetToken}`
-    await transporter.sendMail({
-      from: `"Boiler Dashboard" <${process.env.GMAIL_USER}>`,
-      to: email,
-      subject: 'Reset Password Boiler Dashboard',
-      html: `<p>Klik link berikut untuk membuat password baru (berlaku 1 jam):</p><a href="${resetUrl}">${resetUrl}</a>`,
+    const hostname = req.get('host').split(':')[0]
+    const resetUrl = `http://${hostname}:3000/reset-password?token=${resetToken}`
+   await resend.emails.send({
+    from: 'Boiler Dashboard <onboarding@resend.dev>',
+    to: email,
+    subject: 'Reset Password Boiler Dashboard',
+    html: `<p>Klik link berikut untuk membuat password baru (berlaku 1 jam):</p><a href="${resetUrl}">${resetUrl}</a>`,
     })
     res.json({ message: 'Kalau email terdaftar, link reset password sudah dikirim' })
   } catch (err) {

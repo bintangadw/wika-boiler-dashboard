@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Thermometer, Gauge, Zap, Droplet, TrendingUp, TrendingDown, Settings, X } from 'lucide-react'
 import SensorCard from '../components/SensorCard'
 import HeaterToggle from '../components/HeaterToggle'
+const API_BASE = `http://${window.location.hostname}:4000`
 
 const waterLevelColors = {
   Max: 'text-green-400',
@@ -42,7 +43,7 @@ function LiveView() {
   let cancelled = false
 
   const loadSettings = () => {
-    fetch('http://192.168.2.98:4000/api/settings')
+    fetch(`${API_BASE}/api/settings`)
       .then((res) => res.json())
       .then((s) => {
         if (cancelled) return
@@ -60,7 +61,7 @@ function LiveView() {
 }, [])
 
   const saveSettings = () => {
-    fetch('http://192.168.2.98:4000/api/settings', {
+    fetch(`${API_BASE}/api/settings`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ kwhPrice, gasCostRef }),
@@ -75,7 +76,7 @@ function LiveView() {
 
   useEffect(() => {
     const fetchData = () => {
-      fetch('http://192.168.2.98:4000/api/live')
+      fetch(`${API_BASE}/api/live`)
         .then((res) => res.json())
         .then((row) => {
           setData({
@@ -149,7 +150,7 @@ function LiveView() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="glass-panel p-5 rounded-3xl flex flex-col justify-center items-center text-center border border-white/10 shadow-xl relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <div className="w-12 h-12 rounded-full bg-yellow-400/10 flex items-center justify-center mb-3 ring-1 ring-yellow-400/30">
@@ -157,6 +158,17 @@ function LiveView() {
           </div>
           <p className="text-white/70 text-xs font-medium mb-1 uppercase tracking-wider">Biaya Listrik Heater (Hari Ini)</p>
           <h3 className="text-2xl font-bold text-white">Rp {listrikCost.toLocaleString('id-ID')}</h3>
+        </div>
+
+        <div className="glass-panel p-5 rounded-3xl flex flex-col justify-center items-center text-center border border-cyan-500/30 bg-cyan-500/5 shadow-xl relative overflow-hidden group transition-all duration-300">
+          <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="w-12 h-12 rounded-full bg-cyan-400/10 flex items-center justify-center mb-3 ring-1 ring-cyan-400/30">
+            <Zap className="w-6 h-6 text-cyan-400" />
+          </div>
+          <p className="text-white/70 text-xs font-medium mb-1 uppercase tracking-wider">kWh Terpakai (Hari Ini)</p>
+          <h3 className="text-3xl font-bold tracking-tight text-cyan-400">
+            {kwhToday.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} <span className="text-lg font-medium text-cyan-300">kWh</span>
+          </h3>
         </div>
 
         <div className={`glass-panel p-5 rounded-3xl flex flex-col justify-center items-center text-center shadow-xl relative overflow-hidden group transition-all duration-300 ${efficiency >= 0 ? 'border border-green-500/30 bg-green-500/5' : 'border border-red-500/30 bg-red-500/5'}`}>

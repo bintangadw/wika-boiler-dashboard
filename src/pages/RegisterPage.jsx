@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import logo from '../assets/logo_wika_beton_baru-removebg-preview.png'
+const API_BASE = `http://${window.location.hostname}:4000`
 
 function RegisterPage({ onRegisterSuccess, onGoToLogin }) {
   const [email, setEmail] = useState('')
@@ -20,7 +21,7 @@ function RegisterPage({ onRegisterSuccess, onGoToLogin }) {
   setError('')
 
   try {
-    const res = await fetch('http://192.168.2.98:4000/api/register', {
+    const res = await fetch(`${API_BASE}/api/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),

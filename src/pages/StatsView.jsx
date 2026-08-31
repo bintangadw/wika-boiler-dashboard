@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import LogDownload from '../components/LogDownload'
 import DailyEfficiencyDownload from '../components/DailyEfficiencyDownload'
+const API_BASE = `http://${window.location.hostname}:4000`
 
 import {
   LineChart,
@@ -56,7 +57,7 @@ function formatFullDate(date) {
 }
 
 async function fetchHistory(range) {
-  const res = await fetch(`http://192.168.2.98:4000/api/history?range=${range}`)
+  const res = await fetch(`${API_BASE}/api/history?range=${range}`)
   const rows = await res.json()
 
   return rows.map((row) => ({
@@ -231,7 +232,7 @@ function CostEfficiencyChartCard({ globalRange }) {
   useEffect(() => {
     async function load() {
       const rows = await fetchHistory(range)
-      const settingsRes = await fetch('http://192.168.2.98:4000/api/settings')
+      const settingsRes = await fetch(`${API_BASE}/api/settings`)
       const settings = await settingsRes.json()
       const kwhPrice = Number(settings.kwh_price) || 0
       const gasCostRef = Number(settings.gas_cost_ref) || 0

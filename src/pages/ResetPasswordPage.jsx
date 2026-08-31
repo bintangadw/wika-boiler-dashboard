@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import logo from '../assets/logo_wika_beton_baru-removebg-preview.png'
+const API_BASE = `http://${window.location.hostname}:4000`
 
 function ResetPasswordPage({ token, onResetSuccess }) {
   const [newPassword, setNewPassword] = useState('')
@@ -19,7 +20,7 @@ function ResetPasswordPage({ token, onResetSuccess }) {
     setError('')
 
     try {
-      const res = await fetch('http://192.168.2.98:4000/api/reset-password', {
+      const res = await fetch(`${API_BASE}/api/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, newPassword }),
