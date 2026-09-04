@@ -43,14 +43,20 @@ function LiveView() {
   let cancelled = false
 
   const loadSettings = () => {
-    fetch(`${API_BASE}/api/settings`)
-      .then((res) => res.json())
+    fetch(`${API_BASE}/api/settings`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Gagal ambil settings')
+        return res.json()
+      })
       .then((s) => {
         if (cancelled) return
         setKwhPrice(Number(s.kwh_price) || 0)
         setGasCostRef(Number(s.gas_cost_ref) || 0)
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error('Gagal load settings:', err)
         if (cancelled) return
         setTimeout(loadSettings, 2000)
       })
@@ -59,9 +65,10 @@ function LiveView() {
   loadSettings()
   return () => { cancelled = true }
 }, [])
-
+ 
   const saveSettings = () => {
     fetch(`${API_BASE}/api/settings`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ kwhPrice, gasCostRef }),
@@ -76,7 +83,9 @@ function LiveView() {
 
   useEffect(() => {
     const fetchData = () => {
-      fetch(`${API_BASE}/api/live`)
+        fetch(`${API_BASE}/api/live`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+        })
         .then((res) => res.json())
         .then((row) => {
           setData({
@@ -141,6 +150,7 @@ function LiveView() {
 
       <div className="flex justify-between items-center mb-4 mt-6">
         <h2 className="text-2xl lg:text-3xl font-bold text-white">Efisiensi Biaya</h2>
+        {localStorage.getItem('userRole') === 'admin' && (
         <button
           onClick={() => setShowSettings(true)}
           className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 px-4 py-2 rounded-xl text-white transition-all text-sm font-medium shadow-lg"
@@ -148,6 +158,7 @@ function LiveView() {
           <Settings className="w-4 h-4" />
           Atur Biaya
         </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

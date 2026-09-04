@@ -2,11 +2,25 @@ import express from 'express'
 import cors from 'cors'
 import pg from 'pg'
 import 'dotenv/config'
+import ratelimit from 'express-rate-limit'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 const { Pool } = pg
 
 const app = express()
-app.use(cors())
+app.use(cors({
+  origin: ['http://192.168.2.98:3000', 'http://103.165.139.117:3000'], // nanti diganti lagi setelah dapet ip 
+})) 
+
+const loginLimiter = ratelimit({
+  windowMs: 15 * 16 * 1000,
+  max: 5,
+  message: {error: "terlalu banyak percobaan login, coba lagi nanti"},
+})
 
 const pool = new Pool({
   host: process.env.DB_HOST,
@@ -20,134 +34,57 @@ pool.on('error', (err) => {
   console.error('Unexpected error on idle database client:', err)
 })
 
+function verifyToken(req, res, next) {
+  const authHeader = req.headers.authorization
+  if (!authHeader) return res.status(401).json({ error: 'Token tidak ada' })
+
+  const token = authHeader.split(' ')[1]
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET)
+    req.user = decoded
+    next()
+  } catch (err) {
+    return res.status(401).json({ error: 'Token tidak valid' })
+  }
+}
+
+function requireAdmin(req, res, next) {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ error: 'Akses ditolak, khusus admin' })
+  }
+  next()
+}
+
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
-import { resend } from 'resend'
-const resend = new Resend(process.env.RESEND_API_KEY)
 import { v4 as uuidv4 } from 'uuid'
 
 app.use(express.json())
 
 const JWT_SECRET = process.env.JWT_SECRET
 
-app.post('/api/register', async (req, res) => {
-  const { email, password } = req.body
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email dan password wajib diisi' })
-  }
-  try {
-    const passwordHash = await bcrypt.hash(password, 10)
-    const verificationToken = uuidv4()
-    await pool.query(
-      'INSERT INTO users (email, password_hash, verification_token) VALUES ($1, $2, $3)',
-      [email, passwordHash, verificationToken]
-    )
-    const hostname = req.get('host').split(':')[0]
-    const verifyUrl = `http://${hostname}:4000/api/verify?token=${verificationToken}`
-  
-    await resend.emails.send({
-    from: 'Boiler Dashboard <onboarding@resend.dev>',
-    to: email,
-    subject: 'Verifikasi Akun Boiler Dashboard',
-    html: `<p>Klik link berikut buat verifikasi akun kamu:</p><a href="${verifyUrl}">${verifyUrl}</a>`,
-    })
-    res.json({ message: 'Registrasi berhasil, cek email untuk verifikasi' })
-  } catch (err) {
-    console.error(err)
-    if (err.code === '23505') {
-      return res.status(400).json({ error: 'Email sudah terdaftar' })
-    }
-    res.status(500).json({ error: 'Registrasi gagal' })
-  }
-})
 
-app.get('/api/verify', async (req, res) => {
-  const { token } = req.query
+app.post('/api/login', loginLimiter, async (req, res) => {
+  const { username, password } = req.body
   try {
-    const result = await pool.query(
-      'UPDATE users SET is_verified = TRUE WHERE verification_token = $1 RETURNING *',
-      [token]
-    )
-    if (result.rows.length === 0) {
-      return res.status(400).send('Token tidak valid')
-    }
-    res.send('Email berhasil diverifikasi! Silakan login di dashboard.')
-  } catch (err) {
-    console.error(err)
-    res.status(500).send('Verifikasi gagal')
-  }
-})
-
-app.post('/api/login', async (req, res) => {
-  const { email, password } = req.body
-  try {
-    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email])
+    const result = await pool.query('SELECT * FROM users WHERE username = $1', [username])
     const user = result.rows[0]
-    if (!user) return res.status(400).json({ error: 'Email atau password salah' })
-    if (!user.is_verified) return res.status(400).json({ error: 'Email belum diverifikasi, cek inbox kamu' })
+    if (!user) return res.status(400).json({ error: 'Username atau password salah' })
     const match = await bcrypt.compare(password, user.password_hash)
-    if (!match) return res.status(400).json({ error: 'Email atau password salah' })
-    const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' })
-    res.json({ token })
+    if (!match) return res.status(400).json({ error: 'Username atau password salah' })
+    const token = jwt.sign(
+      { userId: user.id, username: user.username, role: user.role },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    )
+    res.json({ token, role: user.role })
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Login gagal' })
   }
 })
 
-app.post('/api/forgot-password', async (req, res) => {
-  const { email } = req.body
-  if (!email) return res.status(400).json({ error: 'Email wajib diisi' })
-  try {
-    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email])
-    const user = result.rows[0]
-    if (!user) return res.json({ message: 'Kalau email terdaftar, link reset password sudah dikirim' })
-    const resetToken = uuidv4()
-    const expires = new Date(Date.now() + 60 * 60 * 1000)
-    await pool.query(
-      'UPDATE users SET reset_token = $1, reset_token_expires = $2 WHERE email = $3',
-      [resetToken, expires, email]
-    )
-    const hostname = req.get('host').split(':')[0]
-    const resetUrl = `http://${hostname}:3000/reset-password?token=${resetToken}`
-   await resend.emails.send({
-    from: 'Boiler Dashboard <onboarding@resend.dev>',
-    to: email,
-    subject: 'Reset Password Boiler Dashboard',
-    html: `<p>Klik link berikut untuk membuat password baru (berlaku 1 jam):</p><a href="${resetUrl}">${resetUrl}</a>`,
-    })
-    res.json({ message: 'Kalau email terdaftar, link reset password sudah dikirim' })
-  } catch (err) {
-    console.error(err)
-    res.status(500).json({ error: 'Gagal memproses permintaan' })
-  }
-})
-
-app.post('/api/reset-password', async (req, res) => {
-  const { token, newPassword } = req.body
-  if (!token || !newPassword) {
-    return res.status(400).json({ error: 'Token dan password baru wajib diisi' })
-  }
-  try {
-    const result = await pool.query(
-      'SELECT * FROM users WHERE reset_token = $1 AND reset_token_expires > NOW()',
-      [token]
-    )
-    const user = result.rows[0]
-    if (!user) return res.status(400).json({ error: 'Link reset tidak valid atau sudah kedaluwarsa' })
-    const passwordHash = await bcrypt.hash(newPassword, 10)
-    await pool.query(
-      'UPDATE users SET password_hash = $1, reset_token = NULL, reset_token_expires = NULL WHERE id = $2',
-      [passwordHash, user.id]
-    )
-    res.json({ message: 'Password berhasil diubah' })
-  } catch (err) {
-    console.error(err)
-    res.status(500).json({ error: 'Gagal reset password' })
-  }
-})
-
-app.get('/api/settings', async (req, res) => {
+app.get('/api/settings', verifyToken, async (req, res) => {
   try {
     const result = await pool.query('SELECT kwh_price, gas_cost_ref FROM app_settings WHERE id = 1')
     res.json(result.rows[0] || { kwh_price: 0, gas_cost_ref: 0 })
@@ -157,7 +94,7 @@ app.get('/api/settings', async (req, res) => {
   }
 })
 
-app.post('/api/settings', async (req, res) => {
+app.post('/api/settings', verifyToken, requireAdmin, async (req, res) => {
   const { kwhPrice, gasCostRef } = req.body
   try {
     await pool.query(
@@ -171,7 +108,7 @@ app.post('/api/settings', async (req, res) => {
   }
 })
 
-app.get('/api/live', async (req, res) => {
+app.get('/api/live', verifyToken, async (req, res) => {
   try {
     const sensorResult = await pool.query('SELECT * FROM sensor_readings ORDER BY created_at DESC LIMIT 1')
     const kwhResult = await pool.query('SELECT cumulative_kwh FROM kwh_state WHERE id = 1')
@@ -225,7 +162,7 @@ app.get('/api/history', async (req, res) => {
   }
 })
 
-app.get('/api/log', async (req, res) => {
+app.get('/api/log', verifyToken, requireAdmin, async (req, res) => {
   const { start, end } = req.query
   if (!start || !end) {
     return res.status(400).json({ error: 'Parameter start dan end wajib diisi' })
@@ -250,7 +187,7 @@ app.get('/api/log', async (req, res) => {
   }
 })
 
-app.get('/api/daily-efficiency-log', async (req, res) => {
+app.get('/api/daily-efficiency-log', verifyToken, requireAdmin, async (req, res) => {
   const { start, end } = req.query
   if (!start || !end) {
     return res.status(400).json({ error: 'Parameter start dan end wajib diisi' })
@@ -268,6 +205,12 @@ app.get('/api/daily-efficiency-log', async (req, res) => {
     console.error(err)
     res.status(500).json({ error: 'Gagal ambil data efisiensi harian' })
   }
+})
+
+app.use(express.static(path.join(__dirname, '../dist')))
+
+app.use((req, res) => {
+  res.sendFile(path.join(__dirname, '../dist/index.html'))
 })
 
 app.listen(4000, '0.0.0.0', () => {

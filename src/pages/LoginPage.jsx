@@ -2,41 +2,40 @@ import { useState } from 'react'
 import logo from '../assets/logo_wika_beton_baru-removebg-preview.png'
 const API_BASE = `http://${window.location.hostname}:4000`
 
-function LoginPage({ onLogin, onGoToRegister, onGoToForgotPassword }) {
-  const [email, setEmail] = useState('')
+function LoginPage({ onLogin }) {
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
-const handleSubmit = async (e) => {
-  e.preventDefault()
-  onLogin()
+  const handleSubmit = async (e) => {
+    e.preventDefault()
 
-  
-  if (!email || !password) {
-    setError('Email dan password wajib diisi')
-    return
-  }
-  setError('')
-
-  try {
-    const res = await fetch(`${API_BASE}/api/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    })
-    const data = await res.json()
-
-    if (!res.ok) {
-      setError(data.error || 'Login gagal')
+    if (!username || !password) {
+      setError('Username dan password wajib diisi')
       return
     }
+    setError('')
 
-    localStorage.setItem('authToken', data.token)
-    onLogin()
-  } catch (err) {
-    setError('Gagal terhubung ke server')
+    try {
+      const res = await fetch(`${API_BASE}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || 'Login gagal')
+        return
+      }
+
+      localStorage.setItem('authToken', data.token)
+      localStorage.setItem('userRole', data.role)
+      onLogin()
+    } catch (err) {
+      setError('Gagal terhubung ke server')
+    }
   }
-}
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
@@ -49,13 +48,13 @@ const handleSubmit = async (e) => {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="text-white/80 text-sm mb-1 block">Email</label>
+            <label className="text-white/80 text-sm mb-1 block">Username</label>
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               className="w-full rounded-xl px-4 py-2.5 bg-white/10 border border-white/25 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="nama@email.com"
+              placeholder="username"
             />
           </div>
 
@@ -79,18 +78,6 @@ const handleSubmit = async (e) => {
             Login
           </button>
         </form>
-
-        <p className="text-white/60 text-sm text-center mt-4">
-          <button onClick={onGoToForgotPassword} className="text-blue-300 hover:text-blue-200 font-medium">
-            Lupa Password?
-          </button>
-        </p>
-        <p className="text-white/60 text-sm text-center mt-2">
-          Belum punya akun?{' '}
-          <button onClick={onGoToRegister} className="text-blue-300 hover:text-blue-200 font-medium">
-            Daftar sekarang
-          </button>
-        </p>
       </div>
     </div>
   )

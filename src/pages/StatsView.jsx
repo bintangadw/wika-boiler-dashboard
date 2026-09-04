@@ -14,7 +14,7 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 
-const waterLevelLabels = ['Critical', 'Low', 'Medium', 'Max']
+const waterLevelLabels = ['Critical', 'Low', 'Max']
 
 const TIME_RANGES = [
   { label: '15 Menit', value: '15m' },
@@ -43,7 +43,7 @@ function formatTimeLabel(dateStr, rangeValue) {
 }
 
 function mapWaterLevelNumeric(ta, tb) {
-  if (ta === 1 && tb === 0) return 3 // Max
+  if (ta === 1 && tb === 0) return 2 // Max
   if (ta === 0 && tb === 1) return 1 // Low
   if (ta === 0 && tb === 0) return 0 // Critical
   return 2 // fallback
@@ -105,8 +105,12 @@ function StatsView() {
         </div>
       </div>
 
-      <LogDownload />
-      <DailyEfficiencyDownload />
+      {localStorage.getItem('userRole') === 'admin' && (
+        <>
+        <LogDownload />
+        <DailyEfficiencyDownload />
+      </>
+      )}
 
       <div className="glass-panel rounded-3xl p-6">
         <h3 className="text-white font-semibold mb-4">Overview</h3>
@@ -199,8 +203,8 @@ function WaterLevelChartCard({ globalRange }) {
           <YAxis
             stroke="rgba(255,255,255,0.6)"
             fontSize={10}
-            domain={[0, 3]}
-            ticks={[0, 1, 2, 3]}
+            domain={[0, 2]}
+            ticks={[0, 1, 2]}
             tickFormatter={(val) => waterLevelLabels[val] ?? ''}
           />
           <Tooltip

@@ -1,25 +1,30 @@
 import { useState, useEffect } from 'react'
 import logo from '../assets/logo_wika_beton_baru-removebg-preview.png'
-const API_BASE = `http://${window.location.hostname}:4000`
 
 function Navbar() {
   const [isConnected, setIsConnected] = useState(false)
 
-  useEffect(() => {
-    const checkStatus = () => {
-      fetch(`${API_BASE}/api/live`)
-        .then((res) => res.json())
-        .then((row) => {
-          setIsConnected(Number(row.sistem_run) === 1)
-        })
-        .catch(() => setIsConnected(false))
-    }
+const API_BASE = `http://${window.location.hostname}:4000`
 
-    checkStatus()
-    const interval = setInterval(checkStatus, 3000)
-    return () => clearInterval(interval)
-  }, [])
+useEffect(() => {
+  const checkStatus = () => {
+    fetch(`${API_BASE}/api/live`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Gagal ambil status')
+        return res.json()
+      })
+      .then((row) => {
+        setIsConnected(Number(row.sistem_run) === 1)
+      })
+      .catch(() => setIsConnected(false))
+  }
 
+  checkStatus()
+  const interval = setInterval(checkStatus, 3000)
+  return () => clearInterval(interval)
+}, [])
   return (
     <>
       <div
@@ -32,11 +37,11 @@ function Navbar() {
         }}
       >
         <span
-          className={`w-4.5 h-4.5 rounded-full ${
+          className={`w-10.5 h-10.5 rounded-full ${
             isConnected ? 'bg-green-400' : 'bg-red-400'
           }`}
         />
-        <span className="text-xl text-white/90 hidden sm:inline">
+        <span className="text-2xl text-white/90 hidden sm:inline">
           {isConnected ? 'On' : 'Off'}
         </span>
       </div>

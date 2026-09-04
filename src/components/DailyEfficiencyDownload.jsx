@@ -49,7 +49,27 @@ function DailyEfficiencyDownload() {
         Math.round(r.efisiensi).toLocaleString('id-ID'),
       ])
 
-      autoTable(doc, { head, body, startY: 28, styles: { fontSize: 9 } })
+      const totalKwh = rows.reduce((sum, r) => sum + Number(r.kwh_terpakai), 0)
+      const totalBiaya = rows.reduce((sum, r) => sum + Number(r.biaya_listrik), 0)
+      const totalGasRef = rows.reduce((sum, r) => sum + (r.referensi_gas / 1000) * r.kwh_terpakai, 0)
+      const totalEfisiensi = rows.reduce((sum, r) => sum + Number(r.efisiensi), 0)
+
+      const foot = [[
+        'TOTAL',
+        totalKwh.toFixed(1),
+        Math.round(totalBiaya).toLocaleString('id-ID'),
+        Math.round(totalGasRef).toLocaleString('id-ID'),
+        Math.round(totalEfisiensi).toLocaleString('id-ID'),
+      ]]
+
+      autoTable(doc, {
+        head,
+        body,
+        foot,
+        startY: 28,
+        styles: { fontSize: 9 },
+        footStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold' },
+      })
       doc.save(`efisiensi-harian-${start}-${end}.pdf`)
     } catch (err) {
       setError('Gagal terhubung ke server')

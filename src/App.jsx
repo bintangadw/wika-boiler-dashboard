@@ -41,11 +41,7 @@ const resetToken = new URLSearchParams(window.location.search).get('token')
         }}
       >
         {authScreen === 'login' && (
-        <LoginPage
-          onLogin={() => setIsLoggedIn(true)}
-          onGoToRegister={() => setAuthScreen('register')}
-          onGoToForgotPassword={() => setAuthScreen('forgot-password')}
-        />
+        <LoginPage onLogin={() => setIsLoggedIn(true)} />
         )}
         {authScreen === 'register' && (
         <RegisterPage

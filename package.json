@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start:all": "concurrently \"npm run dev\" \"nodemon backend/server.js\""
+    "start:all": "nodemon backend/server.js"
   },
   "dependencies": {
     "@aws-sdk/client-cognito-identity": "^3.1104.0",
@@ -21,6 +21,7 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
     "framer-motion": "^12.42.2",
     "jsonwebtoken": "^9.0.3",
     "jspdf": "^4.2.1",
@@ -32,7 +33,6 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "recharts": "^3.9.2",
-    "resend": "^6.25.0",
     "tailwindcss": "^4.3.2",
     "uuid": "^14.0.1"
   },
