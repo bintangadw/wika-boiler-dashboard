@@ -141,19 +141,25 @@ app.get('/api/history', async (req, res) => {
   const config = rangeConfig[range] || rangeConfig['1h']
   try {
     const result = await pool.query(
-      `SELECT
-        to_timestamp(floor(extract(epoch from (created_at AT TIME ZONE 'Asia/Jakarta')) / $1) * $1) AS bucket_time,
-        AVG(suhu) AS suhu,
-        AVG(tekanan) AS tekanan,
-        AVG(kwh_meter) AS kwh_meter,
-        MAX(cumulative_kwh) AS cumulative_kwh,
-        MAX(water_level_ta) AS water_level_ta,
-        MAX(water_level_tb) AS water_level_tb
-      FROM sensor_readings
-      WHERE created_at >= NOW() - $2::interval
-      GROUP BY bucket_time
-      ORDER BY bucket_time ASC`,
-      [config.bucketSeconds, config.intervalSql]
+    `SELECT
+      to_timestamp(floor(extract(epoch from (created_at AT TIME ZONE 'Asia/Jakarta')) / $1) * $1) AS bucket_time,
+      AVG(suhu) AS suhu,
+      AVG(tekanan) AS tekanan,
+      AVG(kwh_meter) AS kwh_meter,
+      MAX(cumulative_kwh) AS cumulative_kwh,
+      MIN(
+        CASE
+          WHEN water_level_ta = 1 AND water_level_tb = 0 THEN 2
+          WHEN water_level_ta = 0 AND water_level_tb = 1 THEN 1
+          WHEN water_level_ta = 0 AND water_level_tb = 0 THEN 0
+          ELSE 2
+        END
+      ) AS water_level_severity
+    FROM sensor_readings
+    WHERE created_at >= NOW() - $2::interval
+    GROUP BY bucket_time
+    ORDER BY bucket_time ASC`,
+    [config.bucketSeconds, config.intervalSql]
     )
     res.json(result.rows)
   } catch (err) {

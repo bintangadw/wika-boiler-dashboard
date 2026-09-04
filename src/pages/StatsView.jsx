@@ -67,7 +67,7 @@ async function fetchHistory(range) {
     pressure: +(((row.tekanan - 400) / 1600) * 10).toFixed(2),
     kwh: +(row.kwh_meter * (1 / 400)).toFixed(1),
     cumulativeKwh: +(row.cumulative_kwh * (1 / 400)).toFixed(2),
-    waterLevel: mapWaterLevelNumeric(row.water_level_ta, row.water_level_tb),
+    waterLevel: row.water_level_severity,
   }))
 }
 
@@ -127,7 +127,7 @@ function StatsView() {
             <Legend />
             <Line isAnimationActive={false} type="monotone" dataKey="temperature" stroke="#fb923c" strokeWidth={2} dot={false} name="Temp (°C)" />
             <Line isAnimationActive={false} type="monotone" dataKey="pressure" stroke="#60a5fa" strokeWidth={2} dot={false} name="Pressure (bar)" />
-            <Line isAnimationActive={false} type="monotone" dataKey="kwh" stroke="#facc15" strokeWidth={2} dot={false} name="Power (kWh)" />
+            <Line isAnimationActive={false} type="monotone" dataKey="cumulativeKwh" stroke="#facc15" strokeWidth={2} dot={false} name="Power (kWh)" />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -135,7 +135,7 @@ function StatsView() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ChartCard title="Temperature (°C)" dataKey="temperature" color="#fb923c" globalRange={globalRange} />
         <ChartCard title="Pressure (bar)" dataKey="pressure" color="#60a5fa" globalRange={globalRange} />
-        <ChartCard title="Power (kWh)" dataKey="kwh" color="#facc15" globalRange={globalRange} />
+        <ChartCard title="Power (kWh)" dataKey="cumulativeKwh" color="#facc15" globalRange={globalRange} />
         <WaterLevelChartCard globalRange={globalRange} />
         <CostEfficiencyChartCard globalRange={globalRange} />
       </div>
@@ -233,15 +233,21 @@ function CostEfficiencyChartCard({ globalRange }) {
     setRange(globalRange)
   }, [globalRange])
 
-  useEffect(() => {
-    async function load() {
-      const rows = await fetchHistory(range)
-      const settingsRes = await fetch(`${API_BASE}/api/settings`)
-      const settings = await settingsRes.json()
-      const kwhPrice = Number(settings.kwh_price) || 0
-      const gasCostRef = Number(settings.gas_cost_ref) || 0
+ useEffect(() => {
+  async function load() {
+    const rows = await fetchHistory(range)
+    const settingsRes = await fetch(`${API_BASE}/api/settings`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+    })
+    if (!settingsRes.ok) {
+      console.error('Gagal ambil settings untuk chart efisiensi')
+      return
+    }
+    const settings = await settingsRes.json()
+    const kwhPrice = Number(settings.kwh_price) || 0
+    const gasCostRef = Number(settings.gas_cost_ref) || 0
 
-      const processed = rows.map((row, i) => {
+    const processed = rows.map((row, i) => {
       const prevKwh = i === 0 ? row.cumulativeKwh : rows[i - 1].cumulativeKwh
       const deltaKwh = Math.max(0, row.cumulativeKwh - prevKwh)
       const periodCost = +(deltaKwh * kwhPrice).toFixed(0)
@@ -249,10 +255,10 @@ function CostEfficiencyChartCard({ globalRange }) {
       const periodEfficiency = periodGasEquivalent - periodCost
       return { time: row.time, fullDate: row.fullDate, periodCost, periodEfficiency }
     })
-      setData(processed)
-    }
-    load()
-  }, [range])
+    setData(processed)
+  }
+  load()
+}, [range])
 
   return (
     <div className="glass-panel rounded-3xl p-6">
